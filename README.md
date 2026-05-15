@@ -1,4 +1,4 @@
-# Agent Intelligence System (AIS)
+# Agentic Intelligence System (AIS)
 
 The agent-discoverability substrate. AEO/GEO + MCP + marketplace + defense intel on one canonical source of truth.
 

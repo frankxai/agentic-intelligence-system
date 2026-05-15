@@ -2,7 +2,7 @@
   "name": "@frankx-ai/agent-intelligence-system",
   "version": "0.1.0",
   "private": true,
-  "description": "Agent Intelligence System — AEO/GEO substrate, MCP server, marketplace, defense intel. Sibling to SIS/Library OS/IIS/SBO.",
+  "description": "Agentic Intelligence System — AEO/GEO substrate, MCP server, marketplace, defense intel. Sibling to SIS/Library OS/IIS/SBO.",
   "license": "MIT",
   "type": "module",
   "engines": { "node": ">=24" },
