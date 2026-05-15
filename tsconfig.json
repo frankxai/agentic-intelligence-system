@@ -1,0 +1,7 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/ais-core" },
+    { "path": "./packages/ais-emit" }
+  ]
+}
