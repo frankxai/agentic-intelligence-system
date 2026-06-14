@@ -1,0 +1,89 @@
+# Agentic Intelligence System - LLMs Discovery
+
+This file lists the active AI coding agents, skills, and safety boundaries configured for the workstation/organization.
+
+## Active Workstation
+- Machine: Yoga Laptop Workstation (Windows)
+- Specifications: RAM 16GB, Parallel session capacity 5
+
+## Coding Agent Fleet
+
+### Claude Code (`cl`)
+- Primary LLM: `claude-3-5-sonnet`
+- Specs: Context 200k in / 8k out, Latency: Medium
+- Cost: $3/1M in, $15/1M out
+- Strengths: Multi-file refactors, TDD loops, library upgrades
+- Failure Modes: Context exhaustion on massive file reads, Prompt injection from web logs
+
+### DeepAgent (dcode) (`da`)
+- Primary LLM: `claude-3-5-sonnet`
+- Specs: Context 200k in / 8k out, Latency: Slow
+- Cost: $3/1M in, $15/1M out
+- Strengths: Long-horizon tasks, multi-step planning, remote sandboxing
+- Failure Modes: Loop timeouts in deep sub-agent delegation queues
+
+### Cursor (`cur`)
+- Primary LLM: `claude-3-5-sonnet`
+- Specs: Context 100k in / 4k out, Latency: Fast
+- Cost: $3/1M in, $15/1M out
+- Strengths: Frontend UI layout, interactive visual edits
+- Failure Modes: Write collisions with active editor states, File locking on Windows
+
+### Codex CLI (`cd`)
+- Primary LLM: `gpt-4o`
+- Specs: Context 128k in / 4k out, Latency: Fast
+- Cost: $5/1M in, $15/1M out
+- Strengths: Standard developer tasks, security audits
+- Failure Modes: Code hallucinations on newly released APIs
+
+### OpenCode (`oa`)
+- Primary LLM: `groq/llama-4-scout`
+- Specs: Context 8k in / 2k out, Latency: Ultra-Fast
+- Cost: $0/1M in, $0/1M out
+- Strengths: Trivial configuration edits, speed-coding, and API testing
+- Failure Modes: Inability to ingest large repositories due to context size limits
+
+### Antigravity (agy) (`ay`)
+- Primary LLM: `gemini-1.5-pro`
+- Specs: Context 1000k in / 8k out, Latency: Medium-Fast
+- Cost: $1.25/1M in, $3.75/1M out
+- Strengths: High-velocity OS & creator workspace operations, cross-repo sync
+- Failure Modes: Output style drift (requires strict system prompt constraints)
+
+## Global Skills Registry
+
+### agent-manager-skill (v1.0.0)
+- Triggers: `coding agent`, `route agent`, `handoff`, `machine status`
+- Description: Orchestrate, route, monitor, and hand off between AI coding agents on this workstation.
+- Priority: high
+
+### model-routing (v1.0.0)
+- Triggers: `model`, `routing`, `optimize`, `cost`
+- Description: Intelligent model selection - routes tasks to Haiku, Sonnet, or Opus based on task complexity analysis.
+- Priority: high
+
+## Repositories Harness & Safety Policies
+
+### Repository: `Starlight-Intelligence-System`
+- Risk Level: `production`
+- Stance: Global hooks active
+- Verification: run `pnpm test` to verify health.
+- Deployment Policy: `manual`
+
+### Repository: `agentic-creator-os`
+- Risk Level: `production`
+- Stance: Scoped local harness only
+- Verification: run `pnpm test` to verify health.
+- Deployment Policy: `manual`
+
+### Repository: `FrankX`
+- Risk Level: `private`
+- Stance: Scoped local harness only
+- Verification: run `npm run health` to verify health.
+- Deployment Policy: `none`
+
+### Repository: `frankx.ai-vercel-website`
+- Risk Level: `production`
+- Stance: Scoped local harness only
+- Verification: run `pnpm build && pnpm start` to verify health.
+- Deployment Policy: `vercel-main`
