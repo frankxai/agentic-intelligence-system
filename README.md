@@ -15,7 +15,7 @@
 [![MCP](https://img.shields.io/badge/MCP-active-10b981?style=for-the-badge&labelColor=0d1117)](https://modelcontextprotocol.io/)
 [![Built on SIP](https://img.shields.io/badge/Built_on-SIP-78a6ff?style=for-the-badge&labelColor=0d1117)](https://github.com/frankxai/Starlight-Intelligence-System)
 
-[**📦 Packages**](#-monorepo-packages) · [**⚡ Routing protocol**](#-the-active-workstation-fleet--routing-protocol) · [**🛠️ Getting started**](#️-getting-started)
+[**📦 Packages**](#packages) · [**⚡ Routing protocol**](#routing-protocol) · [**🛠️ Getting started**](#getting-started)
 
 </div>
 
@@ -52,6 +52,8 @@ flowchart TB
 
 ---
 
+<a id="packages"></a>
+
 ## 📦 Monorepo packages
 
 Four decoupled, compile-safe packages under one `pnpm` workspace:
@@ -79,6 +81,8 @@ Four decoupled, compile-safe packages under one `pnpm` workspace:
 
 ---
 
+<a id="routing-protocol"></a>
+
 ## ⚡ The active workstation fleet & routing protocol
 
 AIS establishes a first-principles task-mapping system based on requirement complexity:
@@ -100,6 +104,8 @@ flowchart LR
 | **9-10** | **DeepAgent** / **SIS Swarm** | Custom / Pluggable | Long-horizon multi-step planning, remote sandbox runs, agent swarms. |
 
 ---
+
+<a id="getting-started"></a>
 
 ## 🛠️ Getting started
 
