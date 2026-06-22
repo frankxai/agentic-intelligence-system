@@ -1,3 +1,7 @@
+<p align="center">
+  <img src=".github/assets/hero.svg" width="100%" alt="Agentic Intelligence System — Discovery · Routing · Capabilities orchestration for AI agents"/>
+</p>
+
 <div align="center">
 
 # 🏛️ Agentic Intelligence System (AIS)
