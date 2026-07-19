@@ -16,6 +16,7 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm -r build
+      - run: pnpm build
+      - run: test -s public/llms.txt && test -s public/agents.json && test -s public/jsonld.json
       - run: pnpm typecheck
       - run: pnpm test
