@@ -12,6 +12,10 @@ const PUBLIC_DIR = path.join(ROOT_DIR, 'public');
 const PROFILE_PATH = path.join(ROOT_DIR, 'ais-profile.yaml');
 
 function writeArtifact(filename, content) {
+  if (content === undefined || content === null) {
+    throw new Error(`Content for ${filename} is undefined or null`);
+  }
+
   const rootPath = path.join(ROOT_DIR, filename);
   const publicPath = path.join(PUBLIC_DIR, filename);
 
