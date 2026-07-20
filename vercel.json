@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "pnpm run build",
+  "outputDirectory": "public",
+  "cleanUrls": true,
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/llms.txt",
+      "permanent": false
+    }
+  ]
+}
