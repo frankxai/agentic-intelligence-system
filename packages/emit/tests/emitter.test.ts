@@ -9,6 +9,16 @@ import {
 
 describe('AIS Emitter', () => {
   const mockProfile: SystemProfile = {
+    publicDiscovery: {
+      capabilities: [{ name: 'Public capability', description: 'Public description' }],
+      skills: [
+        {
+          name: 'Public skill',
+          version: '1.0.0',
+          description: 'Public skill description',
+        },
+      ],
+    },
     workstation: {
       machineName: 'Private Yoga Laptop',
       os: 'Private OS',
@@ -21,7 +31,7 @@ describe('AIS Emitter', () => {
     },
     agents: [
       {
-        name: 'Claude Code',
+        name: 'Private agent',
         cliCommand: 'private-cli',
         primaryModel: 'private-model',
         costInputPerMillion: 3,
@@ -30,16 +40,16 @@ describe('AIS Emitter', () => {
         latencyClass: 'Medium',
         reliability: 9.2,
         primaryFailureModes: ['private failure mode'],
-        bestFor: 'Refactoring',
+        bestFor: 'private runtime capability',
       },
     ],
     skills: [
       {
-        name: 'agent-manager-skill',
-        description: 'Orchestration rules',
+        name: 'private-skill',
+        description: 'private skill description',
         triggers: ['private trigger'],
         priority: 'high',
-        version: '1.0.0',
+        version: '9.9.9',
       },
     ],
     harnesses: {
@@ -56,26 +66,29 @@ describe('AIS Emitter', () => {
   const privateMarkers = [
     'Private Yoga Laptop',
     'Private OS',
+    'Private agent',
     'private-cli',
     'private-model',
     'private failure mode',
+    'private runtime capability',
+    'private-skill',
+    'private skill description',
     'private trigger',
     'private-repository',
     'private health command',
     '200000',
-    '15',
   ];
 
-  it('projects only public-safe capabilities and skills', () => {
+  it('projects only the explicit public allowlist', () => {
     expect(projectPublicDiscovery(mockProfile)).toEqual({
       schemaVersion: '2.0.0',
       projection: 'public',
-      capabilities: [{ name: 'Claude Code', description: 'Refactoring' }],
+      capabilities: [{ name: 'Public capability', description: 'Public description' }],
       skills: [
         {
-          name: 'agent-manager-skill',
+          name: 'Public skill',
           version: '1.0.0',
-          description: 'Orchestration rules',
+          description: 'Public skill description',
         },
       ],
     });
@@ -84,8 +97,8 @@ describe('AIS Emitter', () => {
   it('generates a public-safe llms.txt', () => {
     const text = generateLlmsText(mockProfile);
     expect(text).toContain('# Agentic Intelligence System — Public Discovery');
-    expect(text).toContain('Claude Code');
-    expect(text).toContain('agent-manager-skill');
+    expect(text).toContain('Public capability');
+    expect(text).toContain('Public skill');
     for (const marker of privateMarkers) expect(text).not.toContain(marker);
   });
 
@@ -95,11 +108,12 @@ describe('AIS Emitter', () => {
     expect(parsed.schemaVersion).toBe('2.0.0');
     expect(parsed.projection).toBe('public');
     expect(parsed.capabilities[0]).toEqual({
-      name: 'Claude Code',
-      description: 'Refactoring',
+      name: 'Public capability',
+      description: 'Public description',
     });
     expect(parsed).not.toHaveProperty('workstation');
     expect(parsed).not.toHaveProperty('harnesses');
+    expect(parsed).not.toHaveProperty('agents');
     for (const marker of privateMarkers) expect(json).not.toContain(marker);
   });
 
