@@ -36,18 +36,20 @@
 
 ## 🗺️ Architectural ecosystem
 
-A single unified profile (`ais-profile.yaml`) drives three decoupled emitters and the live MCP server.
+`ais-profile.yaml` contains two explicit trust domains: an allowlisted `publicDiscovery` projection for crawler artifacts, and private runtime data for local routing. Public emitters never traverse the workstation, agent-runtime, or repository-policy sections.
 
 ```mermaid
 flowchart TB
     Profile["📄 Unified Profile Schema<br/>(ais-profile.yaml)"]
+    Public["🔒 Public allowlist<br/>(publicDiscovery only)"]
     Core["⚙️ ais-core<br/>Zod schemas · parser · validation gateway"]
     Emit["🖨️ ais-emit<br/>llms.txt · agents.json · JSON-LD"]
     MCP["🔌 ais-mcp<br/>stdio context server"]
     Skills["🧠 ais-skills<br/>workstation-wide meta skills"]
 
     Profile --> Core
-    Core --> Emit
+    Core --> Public
+    Public --> Emit
     Core --> MCP
     Core --> Skills
     Emit -->|discovery surface| Bots["🤖 LLM crawlers · search · sitemaps"]
@@ -69,7 +71,7 @@ Four decoupled, compile-safe packages under one `pnpm` workspace:
 
 ### 2. 🖨️ [`@frankx-ai/ais-emit`](packages/emit/README.md)
 * **Purpose:** Build-time SEO & discovery generators.
-* **Responsibility:** Compiles structural documentation:
+* **Responsibility:** Compiles only the explicit `publicDiscovery` allowlist; local machine, model, cost, command, failure-mode, and harness fields are excluded by construction:
   * [`llms.txt`](llms.txt) — discovery format for LLM search bots.
   * [`agents.json`](agents.json) — machine-readable workspace capabilities inventory.
   * [`JSON-LD`](jsonld.json) — Schema.org structured metadata for website sitemaps.
