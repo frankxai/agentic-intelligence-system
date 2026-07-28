@@ -6,7 +6,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import path from 'node:path';
 import fs from 'node:fs';
-import { loadSystemProfile } from '@frankx-ai/ais-core';
+import { loadSystemProfile, type SystemProfile } from '@frankx-ai/ais-core';
 
 // Find the profile relative to execution context or default locations
 const DEFAULT_PROFILE_PATH = path.join(process.cwd(), 'ais-profile.yaml');
@@ -24,11 +24,15 @@ const server = new Server(
 );
 
 // Helper to load profile safely
-function getProfile() {
+function getProfile(): SystemProfile {
   const profilePath = process.env.AIS_PROFILE_PATH || DEFAULT_PROFILE_PATH;
   if (!fs.existsSync(profilePath)) {
     // Return a default fallback configuration if no file is present
     return {
+      publicDiscovery: {
+        capabilities: [],
+        skills: [],
+      },
       workstation: {
         machineName: 'Yoga Laptop (Fallback)',
         os: 'Windows 11',
