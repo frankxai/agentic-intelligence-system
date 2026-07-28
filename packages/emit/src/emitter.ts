@@ -1,49 +1,65 @@
 import type { SystemProfile } from '@frankx-ai/ais-core';
 
+export interface PublicDiscoveryProfile {
+  schemaVersion: '2.0.0';
+  projection: 'public';
+  capabilities: Array<{
+    name: string;
+    description: string;
+  }>;
+  skills: Array<{
+    name: string;
+    version: string;
+    description: string;
+  }>;
+}
+
 /**
- * Generates llms.txt content, a standard listing format for LLM crawler searchability.
+ * Projects the local AIS profile onto the deliberately small public discovery
+ * boundary. Workstation details, CLI aliases, models, pricing, context windows,
+ * failure modes, and repository policies never cross this function.
+ */
+export function projectPublicDiscovery(profile: SystemProfile): PublicDiscoveryProfile {
+  return {
+    schemaVersion: '2.0.0',
+    projection: 'public',
+    capabilities: profile.agents.map((agent) => ({
+      name: agent.name,
+      description: agent.bestFor,
+    })),
+    skills: profile.skills.map((skill) => ({
+      name: skill.name,
+      version: skill.version,
+      description: skill.description,
+    })),
+  };
+}
+
+/**
+ * Generates public llms.txt content from the public-safe projection.
  */
 export function generateLlmsText(profile: SystemProfile): string {
-  let output = `# Agentic Intelligence System - LLMs Discovery
+  const publicProfile = projectPublicDiscovery(profile);
+  let output = `# Agentic Intelligence System — Public Discovery
 
-This file lists the active AI coding agents, skills, and safety boundaries configured for the workstation/organization.
+AIS exposes provider-agnostic capabilities for discovery. Local workstation, routing, model, cost, and repository-policy data remain private to the runtime.
 
-## Active Workstation
-- Machine: ${profile.workstation.machineName} (${profile.workstation.os})
-- Specifications: RAM ${profile.workstation.totalRamGb}GB, Parallel session capacity ${profile.workstation.capacityGuidelines.maxParallelSessions}
-
-## Coding Agent Fleet
+## Capability Registry
 `;
 
-  for (const agent of profile.agents) {
+  for (const capability of publicProfile.capabilities) {
     output += `
-### ${agent.name} (\`${agent.cliCommand}\`)
-- Primary LLM: \`${agent.primaryModel}\`
-- Specs: Context ${agent.contextWindow.input / 1000}k in / ${agent.contextWindow.output / 1000}k out, Latency: ${agent.latencyClass}
-- Cost: \$${agent.costInputPerMillion}/1M in, \$${agent.costOutputPerMillion}/1M out
-- Strengths: ${agent.bestFor}
-- Failure Modes: ${agent.primaryFailureModes.join(', ')}
+### ${capability.name}
+- Capability: ${capability.description}
+- Runtime: Provider-agnostic; selected privately for each task.
 `;
   }
 
-  output += `\n## Global Skills Registry\n`;
-  for (const skill of profile.skills) {
+  output += `\n## Public Skills\n`;
+  for (const skill of publicProfile.skills) {
     output += `
 ### ${skill.name} (v${skill.version})
-- Triggers: ${skill.triggers.map((t) => `\`${t}\``).join(', ')}
 - Description: ${skill.description}
-- Priority: ${skill.priority}
-`;
-  }
-
-  output += `\n## Repositories Harness & Safety Policies\n`;
-  for (const [repo, harness] of Object.entries(profile.harnesses)) {
-    output += `
-### Repository: \`${repo}\`
-- Risk Level: \`${harness.riskLevel}\`
-- Stance: ${harness.globalHooksAllowed ? 'Global hooks active' : 'Scoped local harness only'}
-- Verification: run \`${harness.healthCommand}\` to verify health.
-- Deployment Policy: \`${harness.deployPolicy}\`
 `;
   }
 
@@ -51,52 +67,23 @@ This file lists the active AI coding agents, skills, and safety boundaries confi
 }
 
 /**
- * Generates a standard JSON representation of the fleet capabilities.
+ * Generates the public machine-readable capability inventory.
  */
 export function generateAgentsJson(profile: SystemProfile): string {
-  return JSON.stringify(
-    {
-      schemaVersion: '1.0.0',
-      workstation: {
-        name: profile.workstation.machineName,
-        os: profile.workstation.os,
-      },
-      agents: profile.agents.map((a) => ({
-        name: a.name,
-        cli: a.cliCommand,
-        model: a.primaryModel,
-        window: `${a.contextWindow.input / 1000}k`,
-        latency: a.latencyClass,
-        bestFor: a.bestFor,
-      })),
-      skills: profile.skills.map((s) => ({
-        name: s.name,
-        version: s.version,
-        triggers: s.triggers,
-        description: s.description,
-      })),
-      harnesses: Object.entries(profile.harnesses).map(([name, h]) => ({
-        repo: name,
-        risk: h.riskLevel,
-        verify: h.healthCommand,
-      })),
-    },
-    null,
-    2
-  );
+  return JSON.stringify(projectPublicDiscovery(profile), null, 2);
 }
 
 /**
- * Generates JSON-LD Structured Data (Schema.org compliant) for website SEO/discovery.
+ * Generates public JSON-LD without local runtime or provider claims.
  */
 export function generateJsonLd(profile: SystemProfile): string {
+  const publicProfile = projectPublicDiscovery(profile);
   return JSON.stringify(
     {
       '@context': 'https://schema.org',
       '@type': 'SoftwareApplication',
       name: 'Agentic Intelligence System (AIS)',
-      description: 'The Agent discoverability and routing substrate.',
-      operatingSystem: profile.workstation.os,
+      description: 'Provider-agnostic discovery and capability routing for AI agents.',
       applicationCategory: 'DeveloperApplication',
       offers: {
         '@type': 'Offer',
@@ -108,10 +95,10 @@ export function generateJsonLd(profile: SystemProfile): string {
         name: 'FrankX AI',
       },
       additionalType: 'https://schema.org/CreativeWork',
-      about: profile.agents.map((a) => ({
+      about: publicProfile.capabilities.map((capability) => ({
         '@type': 'CreativeWork',
-        name: a.name,
-        description: `Agent using model ${a.primaryModel} best for ${a.bestFor}`,
+        name: capability.name,
+        description: capability.description,
       })),
     },
     null,
