@@ -6,10 +6,10 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import path from 'node:path';
 import fs from 'node:fs';
-import { loadSystemProfile } from '@frankx-ai/ais-core';
+import { loadRuntimeProfile, type RuntimeProfile } from '@frankx-ai/ais-core';
 
 // Find the profile relative to execution context or default locations
-const DEFAULT_PROFILE_PATH = path.join(process.cwd(), 'ais-profile.yaml');
+const DEFAULT_PROFILE_PATH = path.join(process.cwd(), 'ais-runtime.local.yaml');
 
 const server = new Server(
   {
@@ -24,19 +24,19 @@ const server = new Server(
 );
 
 // Helper to load profile safely
-function getProfile() {
+function getProfile(): RuntimeProfile {
   const profilePath = process.env.AIS_PROFILE_PATH || DEFAULT_PROFILE_PATH;
   if (!fs.existsSync(profilePath)) {
     // Return a default fallback configuration if no file is present
     return {
       workstation: {
-        machineName: 'Yoga Laptop (Fallback)',
-        os: 'Windows 11',
-        totalRamGb: 16,
-        totalDiskGb: 512,
+        machineName: 'Local workstation',
+        os: 'Unknown',
+        totalRamGb: 0,
+        totalDiskGb: 0,
         capacityGuidelines: {
-          maxParallelSessions: 5,
-          memoryThresholds: { green: 4, yellow: 2, red: 1 },
+          maxParallelSessions: 1,
+          memoryThresholds: { green: 0, yellow: 0, red: 0 },
         },
       },
       agents: [],
@@ -44,7 +44,7 @@ function getProfile() {
       harnesses: {},
     };
   }
-  return loadSystemProfile(profilePath);
+  return loadRuntimeProfile(profilePath);
 }
 
 // Define available tools
@@ -118,22 +118,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     case 'get_routing_recommendation': {
       const complexity = (args as { complexity: number }).complexity;
-      let recommendedAgent = 'Claude Code';
-      let reason = 'Default agent for general tasks.';
-
-      if (complexity >= 1 && complexity <= 3) {
-        recommendedAgent = 'OpenCode (groq/llama-4-scout) or Codex';
-        reason = 'Trivial task. Groq / Codex minimizes latency and cost.';
-      } else if (complexity >= 4 && complexity <= 6) {
-        recommendedAgent = 'Cursor / Cline (IDE)';
-        reason = 'Medium complexity. Best handled with real-time visual feedback and human guidance.';
-      } else if (complexity >= 7 && complexity <= 8) {
-        recommendedAgent = 'Claude Code (cl) or Antigravity (agy)';
-        reason = 'High complexity. Requires autonomous reasoning loops and testing.';
-      } else if (complexity >= 9 && complexity <= 10) {
-        recommendedAgent = 'DeepAgent (dcode) or Starlight Hive';
-        reason = 'Substrate/Long-horizon task. Requires multi-agent orchestration, compaction, and sandbox.';
-      }
+      const orderedAgents = [...profile.agents].sort((a, b) => b.reliability - a.reliability);
+      const candidateIndex =
+        complexity <= 3 ? orderedAgents.length - 1 :
+        complexity <= 6 ? Math.floor(orderedAgents.length / 2) :
+        0;
+      const candidate = orderedAgents[Math.max(0, candidateIndex)];
+      const recommendedAgent = candidate?.name ?? 'No runtime agent configured';
+      const reason = candidate
+        ? `Selected from the local runtime profile for complexity ${complexity}; capability: ${candidate.bestFor}`
+        : 'Create ais-runtime.local.yaml or set AIS_PROFILE_PATH before requesting routing.';
 
       return {
         content: [
@@ -164,7 +158,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               {
                 machine: profile.workstation.machineName,
                 maxParallelSessions: maxSessions,
-                guidelines: 'Check C:\\Users\\frank\\FrankX\\docs\\ops\\MACHINE-STATUS.md for real-time readings.',
+                guidelines: 'Use the local runtime monitor for real-time readings.',
               },
               null,
               2

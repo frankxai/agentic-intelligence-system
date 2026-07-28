@@ -1,153 +1,21 @@
-workstation:
-  machineName: "Yoga Laptop Workstation"
-  os: "Windows"
-  totalRamGb: 16
-  totalDiskGb: 512
-  capacityGuidelines:
-    maxParallelSessions: 5
-    memoryThresholds:
-      green: 3.0
-      yellow: 1.5
-      red: 1.0
-
-agents:
-  - name: "Claude Code"
-    cliCommand: "cl"
-    primaryModel: "claude-3-5-sonnet"
-    costInputPerMillion: 3.0
-    costOutputPerMillion: 15.0
-    contextWindow:
-      input: 200000
-      output: 8000
-    latencyClass: "Medium"
-    reliability: 9.2
-    primaryFailureModes:
-      - "Context exhaustion on massive file reads"
-      - "Prompt injection from web logs"
-    bestFor: "Multi-file refactors, TDD loops, library upgrades"
-
-  - name: "DeepAgent (dcode)"
-    cliCommand: "da"
-    primaryModel: "claude-3-5-sonnet"
-    costInputPerMillion: 3.0
-    costOutputPerMillion: 15.0
-    contextWindow:
-      input: 200000
-      output: 8000
-    latencyClass: "Slow"
-    reliability: 9.0
-    primaryFailureModes:
-      - "Loop timeouts in deep sub-agent delegation queues"
-    bestFor: "Long-horizon tasks, multi-step planning, remote sandboxing"
-
-  - name: "Cursor"
-    cliCommand: "cur"
-    primaryModel: "claude-3-5-sonnet"
-    costInputPerMillion: 3.0
-    costOutputPerMillion: 15.0
-    contextWindow:
-      input: 100000
-      output: 4000
-    latencyClass: "Fast"
-    reliability: 8.8
-    primaryFailureModes:
-      - "Write collisions with active editor states"
-      - "File locking on Windows"
-    bestFor: "Frontend UI layout, interactive visual edits"
-
-  - name: "Codex CLI"
-    cliCommand: "cd"
-    primaryModel: "gpt-4o"
-    costInputPerMillion: 5.0
-    costOutputPerMillion: 15.0
-    contextWindow:
-      input: 128000
-      output: 4000
-    latencyClass: "Fast"
-    reliability: 8.5
-    primaryFailureModes:
-      - "Code hallucinations on newly released APIs"
-    bestFor: "Standard developer tasks, security audits"
-
-  - name: "OpenCode"
-    cliCommand: "oa"
-    primaryModel: "groq/llama-4-scout"
-    costInputPerMillion: 0.0
-    costOutputPerMillion: 0.0
-    contextWindow:
-      input: 8000
-      output: 2000
-    latencyClass: "Ultra-Fast"
-    reliability: 7.5
-    primaryFailureModes:
-      - "Inability to ingest large repositories due to context size limits"
-    bestFor: "Trivial configuration edits, speed-coding, and API testing"
-
-  - name: "Antigravity (agy)"
-    cliCommand: "ay"
-    primaryModel: "gemini-1.5-pro"
-    costInputPerMillion: 1.25
-    costOutputPerMillion: 3.75
-    contextWindow:
-      input: 1000000
-      output: 8000
-    latencyClass: "Medium-Fast"
-    reliability: 8.9
-    primaryFailureModes:
-      - "Output style drift (requires strict system prompt constraints)"
-    bestFor: "High-velocity OS & creator workspace operations, cross-repo sync"
-
-skills:
-  - name: "agent-manager-skill"
-    description: "Orchestrate, route, monitor, and hand off between AI coding agents on this workstation."
-    triggers:
-      - "coding agent"
-      - "route agent"
-      - "handoff"
-      - "machine status"
-    priority: "high"
-    version: "1.0.0"
-
-  - name: "model-routing"
-    description: "Intelligent model selection - routes tasks to Haiku, Sonnet, or Opus based on task complexity analysis."
-    triggers:
-      - "model"
-      - "routing"
-      - "optimize"
-      - "cost"
-    priority: "high"
-    version: "1.0.0"
-
-harnesses:
-  Starlight-Intelligence-System:
-    riskLevel: "production"
-    healthCommand: "pnpm test"
-    agentFiles:
-      - "AGENTS.md"
-      - "CLAUDE.md"
-    deployPolicy: "manual"
-    globalHooksAllowed: true
-
-  agentic-creator-os:
-    riskLevel: "production"
-    healthCommand: "pnpm test"
-    agentFiles:
-      - "AGENTS.md"
-    deployPolicy: "manual"
-    globalHooksAllowed: false
-
-  FrankX:
-    riskLevel: "private"
-    healthCommand: "npm run health"
-    agentFiles:
-      - "AGENTS.md"
-    deployPolicy: "none"
-    globalHooksAllowed: false
-
-  frankx.ai-vercel-website:
-    riskLevel: "production"
-    healthCommand: "pnpm build && pnpm start"
-    agentFiles:
-      - "AGENTS.md"
-    deployPolicy: "vercel-main"
-    globalHooksAllowed: false
+publicDiscovery:
+  capabilities:
+    - name: "Multi-file engineering"
+      description: "Plan, implement, and verify bounded changes across a codebase."
+    - name: "Long-horizon orchestration"
+      description: "Coordinate evidence-backed work across multiple dependent steps."
+    - name: "Interactive product design"
+      description: "Refine interfaces, layouts, and interaction details with visual feedback."
+    - name: "Security and quality review"
+      description: "Audit implementation risks and verify release gates."
+    - name: "Fast configuration repair"
+      description: "Apply and validate small, well-scoped configuration changes."
+    - name: "Cross-repository operations"
+      description: "Coordinate governed changes across related repositories."
+  skills:
+    - name: "Agent orchestration"
+      version: "1.0.0"
+      description: "Route, monitor, and hand off work between specialized agents."
+    - name: "Capability routing"
+      version: "1.0.0"
+      description: "Match work to an appropriate capability based on complexity and risk."

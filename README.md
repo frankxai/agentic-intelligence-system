@@ -36,11 +36,12 @@
 
 ## 🗺️ Architectural ecosystem
 
-A single unified profile (`ais-profile.yaml`) drives three decoupled emitters and the live MCP server.
+`ais-profile.yaml` is public by design and contains only the allowlisted discovery projection. Workstation, provider, model, cost, command, failure-mode, and repository-policy data belong in the gitignored `ais-runtime.local.yaml` (or another local path supplied through `AIS_PROFILE_PATH`).
 
 ```mermaid
 flowchart TB
-    Profile["📄 Unified Profile Schema<br/>(ais-profile.yaml)"]
+    Profile["📄 Public discovery<br/>(ais-profile.yaml)"]
+    Runtime["🔒 Local runtime<br/>(gitignored overlay)"]
     Core["⚙️ ais-core<br/>Zod schemas · parser · validation gateway"]
     Emit["🖨️ ais-emit<br/>llms.txt · agents.json · JSON-LD"]
     MCP["🔌 ais-mcp<br/>stdio context server"]
@@ -48,6 +49,7 @@ flowchart TB
 
     Profile --> Core
     Core --> Emit
+    Runtime --> Core
     Core --> MCP
     Core --> Skills
     Emit -->|discovery surface| Bots["🤖 LLM crawlers · search · sitemaps"]
@@ -65,11 +67,11 @@ Four decoupled, compile-safe packages under one `pnpm` workspace:
 ### 1. ⚙️ [`@frankx-ai/ais-core`](packages/core/README.md)
 * **Purpose:** The parser and validation gateway.
 * **Stack:** Zod schemas, TypeScript.
-* **Responsibility:** Parses the unified [`ais-profile.yaml`](ais-profile.yaml), ensuring agent specs, skill parameters, repository boundaries, and hardware capacity constraints comply with types.
+* **Responsibility:** Validates the public discovery profile and the local runtime profile through separate, strict schemas.
 
 ### 2. 🖨️ [`@frankx-ai/ais-emit`](packages/emit/README.md)
 * **Purpose:** Build-time SEO & discovery generators.
-* **Responsibility:** Compiles structural documentation:
+* **Responsibility:** Compiles only the explicit `publicDiscovery` allowlist; local machine, model, cost, command, failure-mode, and harness fields are excluded by construction:
   * [`llms.txt`](llms.txt) — discovery format for LLM search bots.
   * [`agents.json`](agents.json) — machine-readable workspace capabilities inventory.
   * [`JSON-LD`](jsonld.json) — Schema.org structured metadata for website sitemaps.
@@ -87,25 +89,9 @@ Four decoupled, compile-safe packages under one `pnpm` workspace:
 
 <a id="routing-protocol"></a>
 
-## ⚡ The active workstation fleet & routing protocol
+## ⚡ Capability routing
 
-AIS establishes a first-principles task-mapping system based on requirement complexity:
-
-```mermaid
-flowchart LR
-    T["Trivial (1-3)<br/>OpenCode / Codex<br/><i>speed & minimal cost</i>"]
-    M["Medium (4-6)<br/>Cursor / Cline<br/><i>interactive refinement</i>"]
-    H["High (7-8)<br/>Claude Code / Antigravity<br/><i>autonomous TDD loops</i>"]
-    S["Substrate (9-10)<br/>DeepAgent / SIS Swarm<br/><i>sub-agent & delegation</i>"]
-    T --> M --> H --> S
-```
-
-| Complexity Tier | Target Agent | Primary LLM | Recommended Task Types |
-| :--- | :--- | :--- | :--- |
-| **1-3** | **OpenCode** / **Codex** | `groq/llama-4-scout` / `gpt-4o` | Single-file script edits, config modernizations, formatting, doc updates. |
-| **4-6** | **Cursor** / **Cline** | Pluggable | Interactive layouts, CSS styling, component refactoring, UI adjustments. |
-| **7-8** | **Claude Code** / **Antigravity** | `claude-3-5-sonnet` / `gemini-1.5-pro` | Multi-file refactors, test-driven iterations, large-context digestion. |
-| **9-10** | **DeepAgent** / **SIS Swarm** | Custom / Pluggable | Long-horizon multi-step planning, remote sandbox runs, agent swarms. |
+Public discovery describes stable, provider-agnostic capabilities. The MCP server selects among the agents configured in the local runtime profile; provider names, models, costs, machine capacity, aliases, and repository policies are never required in the public repository.
 
 ---
 
@@ -135,7 +121,7 @@ pnpm typecheck   # tsc --noEmit across the workspace
 
 ### Run the MCP server locally
 
-Add the server to your Claude Code / desktop config (`mcp.json`), pointing at your local checkout:
+Create a gitignored `ais-runtime.local.yaml` that satisfies `RuntimeProfileSchema`, then point the server at that local file from your desktop configuration:
 
 ```json
 {
@@ -144,7 +130,7 @@ Add the server to your Claude Code / desktop config (`mcp.json`), pointing at yo
       "command": "node",
       "args": ["/abs/path/to/agentic-intelligence-system/packages/mcp/dist/index.js"],
       "env": {
-        "AIS_PROFILE_PATH": "/abs/path/to/agentic-intelligence-system/ais-profile.yaml"
+        "AIS_PROFILE_PATH": "/abs/path/to/agentic-intelligence-system/ais-runtime.local.yaml"
       }
     }
   }

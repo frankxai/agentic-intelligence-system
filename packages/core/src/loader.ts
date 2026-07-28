@@ -1,35 +1,48 @@
 import fs from 'node:fs';
 import yaml from 'js-yaml';
-import { SystemProfileSchema, type SystemProfile } from './schemas.js';
+import type { ZodType } from 'zod';
+import {
+  PublicProfileSchema,
+  RuntimeProfileSchema,
+  SystemProfileSchema,
+  type PublicProfile,
+  type RuntimeProfile,
+  type SystemProfile,
+} from './schemas.js';
 
-/**
- * Loads the Agentic Intelligence System profile YAML file, parses it,
- * and validates it against the canonical Zod schema.
- * 
- * @param filePath Path to the ais-profile.yaml file
- * @returns Validated SystemProfile object
- */
-export function loadSystemProfile(filePath: string): SystemProfile {
+function loadProfile<T>(filePath: string, schema: ZodType<T>, label: string): T {
   if (!fs.existsSync(filePath)) {
-    throw new Error(`AIS Profile file not found at path: ${filePath}`);
+    throw new Error(`${label} file not found at path: ${filePath}`);
   }
 
-  const fileContents = fs.readFileSync(filePath, 'utf8');
-  const parsedYaml = yaml.load(fileContents);
-
+  const parsedYaml = yaml.load(fs.readFileSync(filePath, 'utf8'));
   if (!parsedYaml || typeof parsedYaml !== 'object') {
-    throw new Error(`AIS Profile is invalid or empty YAML at path: ${filePath}`);
+    throw new Error(`${label} is invalid or empty YAML at path: ${filePath}`);
   }
 
-  // Parse and validate using Zod
-  const result = SystemProfileSchema.safeParse(parsedYaml);
-
+  const result = schema.safeParse(parsedYaml);
   if (!result.success) {
     const errorDetails = result.error.errors
-      .map((err) => `  - [${err.path.join('.')}] ${err.message}`)
+      .map((error) => `  - [${error.path.join('.')}] ${error.message}`)
       .join('\n');
-    throw new Error(`AIS Profile validation failed:\n${errorDetails}`);
+    throw new Error(`${label} validation failed:\n${errorDetails}`);
   }
 
   return result.data;
+}
+
+export function loadPublicProfile(filePath: string): PublicProfile {
+  return loadProfile(filePath, PublicProfileSchema, 'AIS Public Profile');
+}
+
+export function loadRuntimeProfile(filePath: string): RuntimeProfile {
+  return loadProfile(filePath, RuntimeProfileSchema, 'AIS Runtime Profile');
+}
+
+/**
+ * Loads a combined profile from a non-public location. Prefer the narrower
+ * loaders for public builds and MCP runtime.
+ */
+export function loadSystemProfile(filePath: string): SystemProfile {
+  return loadProfile(filePath, SystemProfileSchema, 'AIS Profile');
 }

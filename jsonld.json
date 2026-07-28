@@ -2,8 +2,7 @@
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
   "name": "Agentic Intelligence System (AIS)",
-  "description": "The Agent discoverability and routing substrate.",
-  "operatingSystem": "Windows",
+  "description": "Provider-agnostic discovery and capability routing for AI agents.",
   "applicationCategory": "DeveloperApplication",
   "offers": {
     "@type": "Offer",
@@ -18,33 +17,33 @@
   "about": [
     {
       "@type": "CreativeWork",
-      "name": "Claude Code",
-      "description": "Agent using model claude-3-5-sonnet best for Multi-file refactors, TDD loops, library upgrades"
+      "name": "Multi-file engineering",
+      "description": "Plan, implement, and verify bounded changes across a codebase."
     },
     {
       "@type": "CreativeWork",
-      "name": "DeepAgent (dcode)",
-      "description": "Agent using model claude-3-5-sonnet best for Long-horizon tasks, multi-step planning, remote sandboxing"
+      "name": "Long-horizon orchestration",
+      "description": "Coordinate evidence-backed work across multiple dependent steps."
     },
     {
       "@type": "CreativeWork",
-      "name": "Cursor",
-      "description": "Agent using model claude-3-5-sonnet best for Frontend UI layout, interactive visual edits"
+      "name": "Interactive product design",
+      "description": "Refine interfaces, layouts, and interaction details with visual feedback."
     },
     {
       "@type": "CreativeWork",
-      "name": "Codex CLI",
-      "description": "Agent using model gpt-4o best for Standard developer tasks, security audits"
+      "name": "Security and quality review",
+      "description": "Audit implementation risks and verify release gates."
     },
     {
       "@type": "CreativeWork",
-      "name": "OpenCode",
-      "description": "Agent using model groq/llama-4-scout best for Trivial configuration edits, speed-coding, and API testing"
+      "name": "Fast configuration repair",
+      "description": "Apply and validate small, well-scoped configuration changes."
     },
     {
       "@type": "CreativeWork",
-      "name": "Antigravity (agy)",
-      "description": "Agent using model gemini-1.5-pro best for High-velocity OS & creator workspace operations, cross-repo sync"
+      "name": "Cross-repository operations",
+      "description": "Coordinate governed changes across related repositories."
     }
   ]
 }

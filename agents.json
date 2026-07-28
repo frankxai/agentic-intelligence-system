@@ -1,103 +1,42 @@
 {
-  "schemaVersion": "1.0.0",
-  "workstation": {
-    "name": "Yoga Laptop Workstation",
-    "os": "Windows"
-  },
-  "agents": [
+  "schemaVersion": "2.0.0",
+  "projection": "public",
+  "capabilities": [
     {
-      "name": "Claude Code",
-      "cli": "cl",
-      "model": "claude-3-5-sonnet",
-      "window": "200k",
-      "latency": "Medium",
-      "bestFor": "Multi-file refactors, TDD loops, library upgrades"
+      "name": "Multi-file engineering",
+      "description": "Plan, implement, and verify bounded changes across a codebase."
     },
     {
-      "name": "DeepAgent (dcode)",
-      "cli": "da",
-      "model": "claude-3-5-sonnet",
-      "window": "200k",
-      "latency": "Slow",
-      "bestFor": "Long-horizon tasks, multi-step planning, remote sandboxing"
+      "name": "Long-horizon orchestration",
+      "description": "Coordinate evidence-backed work across multiple dependent steps."
     },
     {
-      "name": "Cursor",
-      "cli": "cur",
-      "model": "claude-3-5-sonnet",
-      "window": "100k",
-      "latency": "Fast",
-      "bestFor": "Frontend UI layout, interactive visual edits"
+      "name": "Interactive product design",
+      "description": "Refine interfaces, layouts, and interaction details with visual feedback."
     },
     {
-      "name": "Codex CLI",
-      "cli": "cd",
-      "model": "gpt-4o",
-      "window": "128k",
-      "latency": "Fast",
-      "bestFor": "Standard developer tasks, security audits"
+      "name": "Security and quality review",
+      "description": "Audit implementation risks and verify release gates."
     },
     {
-      "name": "OpenCode",
-      "cli": "oa",
-      "model": "groq/llama-4-scout",
-      "window": "8k",
-      "latency": "Ultra-Fast",
-      "bestFor": "Trivial configuration edits, speed-coding, and API testing"
+      "name": "Fast configuration repair",
+      "description": "Apply and validate small, well-scoped configuration changes."
     },
     {
-      "name": "Antigravity (agy)",
-      "cli": "ay",
-      "model": "gemini-1.5-pro",
-      "window": "1000k",
-      "latency": "Medium-Fast",
-      "bestFor": "High-velocity OS & creator workspace operations, cross-repo sync"
+      "name": "Cross-repository operations",
+      "description": "Coordinate governed changes across related repositories."
     }
   ],
   "skills": [
     {
-      "name": "agent-manager-skill",
+      "name": "Agent orchestration",
       "version": "1.0.0",
-      "triggers": [
-        "coding agent",
-        "route agent",
-        "handoff",
-        "machine status"
-      ],
-      "description": "Orchestrate, route, monitor, and hand off between AI coding agents on this workstation."
+      "description": "Route, monitor, and hand off work between specialized agents."
     },
     {
-      "name": "model-routing",
+      "name": "Capability routing",
       "version": "1.0.0",
-      "triggers": [
-        "model",
-        "routing",
-        "optimize",
-        "cost"
-      ],
-      "description": "Intelligent model selection - routes tasks to Haiku, Sonnet, or Opus based on task complexity analysis."
-    }
-  ],
-  "harnesses": [
-    {
-      "repo": "Starlight-Intelligence-System",
-      "risk": "production",
-      "verify": "pnpm test"
-    },
-    {
-      "repo": "agentic-creator-os",
-      "risk": "production",
-      "verify": "pnpm test"
-    },
-    {
-      "repo": "FrankX",
-      "risk": "private",
-      "verify": "npm run health"
-    },
-    {
-      "repo": "frankx.ai-vercel-website",
-      "risk": "production",
-      "verify": "pnpm build && pnpm start"
+      "description": "Match work to an appropriate capability based on complexity and risk."
     }
   ]
 }

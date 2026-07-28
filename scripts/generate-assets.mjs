@@ -1,7 +1,7 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { loadSystemProfile } from '../packages/core/dist/index.js';
+import { loadPublicProfile } from '../packages/core/dist/index.js';
 import { generateLlmsText, generateAgentsJson, generateJsonLd } from '../packages/emit/dist/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -28,7 +28,7 @@ function main() {
   console.log('⚡ Generating AIS discovery and sitemap assets...');
 
   try {
-    const profile = loadSystemProfile(PROFILE_PATH);
+    const profile = loadPublicProfile(PROFILE_PATH);
     fs.mkdirSync(PUBLIC_DIR, { recursive: true });
 
     writeArtifact('llms.txt', generateLlmsText(profile));
