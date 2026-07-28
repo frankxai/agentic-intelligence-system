@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { SystemProfile } from '@frankx-ai/ais-core';
+import type { PublicProfile } from '@frankx-ai/ais-core';
 import {
   generateLlmsText,
   generateAgentsJson,
@@ -8,78 +8,27 @@ import {
 } from '../src/emitter.js';
 
 describe('AIS Emitter', () => {
-  const mockProfile: SystemProfile = {
+  const mockProfile = {
     publicDiscovery: {
-      capabilities: [{ name: 'Public capability', description: 'Public description' }],
+      capabilities: [
+        {
+          name: 'Public capability',
+          description: 'Public description',
+          futurePrivateField: 'must-not-serialize',
+        },
+      ],
       skills: [
         {
           name: 'Public skill',
           version: '1.0.0',
           description: 'Public skill description',
+          futurePrivateField: 'must-not-serialize',
         },
       ],
     },
-    workstation: {
-      machineName: 'Private Yoga Laptop',
-      os: 'Private OS',
-      totalRamGb: 16,
-      totalDiskGb: 512,
-      capacityGuidelines: {
-        maxParallelSessions: 5,
-        memoryThresholds: { green: 4, yellow: 2, red: 1 },
-      },
-    },
-    agents: [
-      {
-        name: 'Private agent',
-        cliCommand: 'private-cli',
-        primaryModel: 'private-model',
-        costInputPerMillion: 3,
-        costOutputPerMillion: 15,
-        contextWindow: { input: 200000, output: 8000 },
-        latencyClass: 'Medium',
-        reliability: 9.2,
-        primaryFailureModes: ['private failure mode'],
-        bestFor: 'private runtime capability',
-      },
-    ],
-    skills: [
-      {
-        name: 'private-skill',
-        description: 'private skill description',
-        triggers: ['private trigger'],
-        priority: 'high',
-        version: '9.9.9',
-      },
-    ],
-    harnesses: {
-      'private-repository': {
-        riskLevel: 'private',
-        healthCommand: 'private health command',
-        agentFiles: ['AGENTS.md'],
-        deployPolicy: 'manual',
-        globalHooksAllowed: false,
-      },
-    },
-  };
+  } as unknown as PublicProfile;
 
-  const privateMarkers = [
-    'Private Yoga Laptop',
-    'Private OS',
-    'Private agent',
-    'private-cli',
-    'private-model',
-    'private failure mode',
-    'private runtime capability',
-    'private-skill',
-    'private skill description',
-    'private trigger',
-    'private-repository',
-    'private health command',
-    '200000',
-  ];
-
-  it('projects only the explicit public allowlist', () => {
+  it('projects only the versioned public fields', () => {
     expect(projectPublicDiscovery(mockProfile)).toEqual({
       schemaVersion: '2.0.0',
       projection: 'public',
@@ -99,7 +48,7 @@ describe('AIS Emitter', () => {
     expect(text).toContain('# Agentic Intelligence System — Public Discovery');
     expect(text).toContain('Public capability');
     expect(text).toContain('Public skill');
-    for (const marker of privateMarkers) expect(text).not.toContain(marker);
+    expect(text).not.toContain('must-not-serialize');
   });
 
   it('generates a public-safe agents.json', () => {
@@ -111,10 +60,7 @@ describe('AIS Emitter', () => {
       name: 'Public capability',
       description: 'Public description',
     });
-    expect(parsed).not.toHaveProperty('workstation');
-    expect(parsed).not.toHaveProperty('harnesses');
-    expect(parsed).not.toHaveProperty('agents');
-    for (const marker of privateMarkers) expect(json).not.toContain(marker);
+    expect(json).not.toContain('must-not-serialize');
   });
 
   it('generates public-safe JSON-LD', () => {
@@ -122,6 +68,6 @@ describe('AIS Emitter', () => {
     const parsed = JSON.parse(json);
     expect(parsed['@type']).toBe('SoftwareApplication');
     expect(parsed).not.toHaveProperty('operatingSystem');
-    for (const marker of privateMarkers) expect(json).not.toContain(marker);
+    expect(json).not.toContain('must-not-serialize');
   });
 });
