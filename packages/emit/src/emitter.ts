@@ -15,23 +15,16 @@ export interface PublicDiscoveryProfile {
 }
 
 /**
- * Projects the local AIS profile onto the deliberately small public discovery
- * boundary. Workstation details, CLI aliases, models, pricing, context windows,
- * failure modes, and repository policies never cross this function.
+ * Projects the explicitly allowlisted public section. Workstation details, CLI
+ * aliases, models, pricing, context windows, failure modes, and repository
+ * policies cannot cross this boundary when private profile fields change.
  */
 export function projectPublicDiscovery(profile: SystemProfile): PublicDiscoveryProfile {
   return {
     schemaVersion: '2.0.0',
     projection: 'public',
-    capabilities: profile.agents.map((agent) => ({
-      name: agent.name,
-      description: agent.bestFor,
-    })),
-    skills: profile.skills.map((skill) => ({
-      name: skill.name,
-      version: skill.version,
-      description: skill.description,
-    })),
+    capabilities: profile.publicDiscovery.capabilities.map((capability) => ({ ...capability })),
+    skills: profile.publicDiscovery.skills.map((skill) => ({ ...skill })),
   };
 }
 
