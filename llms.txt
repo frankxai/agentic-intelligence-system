@@ -4,34 +4,34 @@ AIS exposes provider-agnostic capabilities for discovery. Local workstation, rou
 
 ## Capability Registry
 
-### Claude Code
-- Capability: Multi-file refactors, TDD loops, library upgrades
+### Multi-file engineering
+- Capability: Plan, implement, and verify bounded changes across a codebase.
 - Runtime: Provider-agnostic; selected privately for each task.
 
-### DeepAgent (dcode)
-- Capability: Long-horizon tasks, multi-step planning, remote sandboxing
+### Long-horizon orchestration
+- Capability: Coordinate evidence-backed work across multiple dependent steps.
 - Runtime: Provider-agnostic; selected privately for each task.
 
-### Cursor
-- Capability: Frontend UI layout, interactive visual edits
+### Interactive product design
+- Capability: Refine interfaces, layouts, and interaction details with visual feedback.
 - Runtime: Provider-agnostic; selected privately for each task.
 
-### Codex CLI
-- Capability: Standard developer tasks, security audits
+### Security and quality review
+- Capability: Audit implementation risks and verify release gates.
 - Runtime: Provider-agnostic; selected privately for each task.
 
-### OpenCode
-- Capability: Trivial configuration edits, speed-coding, and API testing
+### Fast configuration repair
+- Capability: Apply and validate small, well-scoped configuration changes.
 - Runtime: Provider-agnostic; selected privately for each task.
 
-### Antigravity (agy)
-- Capability: High-velocity OS & creator workspace operations, cross-repo sync
+### Cross-repository operations
+- Capability: Coordinate governed changes across related repositories.
 - Runtime: Provider-agnostic; selected privately for each task.
 
 ## Public Skills
 
-### agent-manager-skill (v1.0.0)
-- Description: Orchestrate, route, monitor, and hand off between AI coding agents on this workstation.
+### Agent orchestration (v1.0.0)
+- Description: Route, monitor, and hand off work between specialized agents.
 
-### model-routing (v1.0.0)
-- Description: Intelligent model selection - routes tasks to Haiku, Sonnet, or Opus based on task complexity analysis.
+### Capability routing (v1.0.0)
+- Description: Match work to an appropriate capability based on complexity and risk.
