@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 /**
- * Schema for an individual AI coding agent in the fleet registry.
+ * Schema for an individual AI coding agent in the private runtime fleet registry.
  */
 export const AgentSchema = z.object({
   name: z.string(),
@@ -71,9 +71,32 @@ export const WorkstationSchema = z.object({
 export type Workstation = z.infer<typeof WorkstationSchema>;
 
 /**
- * Root schema combining the entire Agentic Intelligence System profile.
+ * Explicit allowlist for public discovery. Emitters read only this section;
+ * local runtime fields never become public merely because the profile grows.
+ */
+export const PublicDiscoverySchema = z.object({
+  capabilities: z.array(
+    z.object({
+      name: z.string(),
+      description: z.string(),
+    })
+  ),
+  skills: z.array(
+    z.object({
+      name: z.string(),
+      version: z.string(),
+      description: z.string(),
+    })
+  ),
+});
+
+export type PublicDiscovery = z.infer<typeof PublicDiscoverySchema>;
+
+/**
+ * Root schema combining the Agentic Intelligence System profile.
  */
 export const SystemProfileSchema = z.object({
+  publicDiscovery: PublicDiscoverySchema,
   workstation: WorkstationSchema,
   agents: z.array(AgentSchema),
   skills: z.array(SkillSchema),
