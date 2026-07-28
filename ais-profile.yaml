@@ -1,3 +1,25 @@
+publicDiscovery:
+  capabilities:
+    - name: "Multi-file engineering"
+      description: "Plan, implement, and verify bounded changes across a codebase."
+    - name: "Long-horizon orchestration"
+      description: "Coordinate evidence-backed work across multiple dependent steps."
+    - name: "Interactive product design"
+      description: "Refine interfaces, layouts, and interaction details with visual feedback."
+    - name: "Security and quality review"
+      description: "Audit implementation risks and verify release gates."
+    - name: "Fast configuration repair"
+      description: "Apply and validate small, well-scoped configuration changes."
+    - name: "Cross-repository operations"
+      description: "Coordinate governed changes across related repositories."
+  skills:
+    - name: "Agent orchestration"
+      version: "1.0.0"
+      description: "Route, monitor, and hand off work between specialized agents."
+    - name: "Capability routing"
+      version: "1.0.0"
+      description: "Match work to an appropriate capability based on complexity and risk."
+
 workstation:
   machineName: "Yoga Laptop Workstation"
   os: "Windows"
