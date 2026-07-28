@@ -8,6 +8,14 @@ describe('AIS Profile Loader', () => {
 
   it('should successfully load and validate a well-formed profile', () => {
     const validProfileContent = `
+publicDiscovery:
+  capabilities:
+    - name: "Public capability"
+      description: "Public description"
+  skills:
+    - name: "Public skill"
+      version: "1.0.0"
+      description: "Public skill description"
 workstation:
   machineName: "Yoga Laptop"
   os: "Windows 11"
@@ -53,6 +61,7 @@ harnesses:
 
     try {
       const profile = loadSystemProfile(mockYamlPath);
+      expect(profile.publicDiscovery.capabilities[0]?.name).toBe('Public capability');
       expect(profile.workstation.machineName).toBe('Yoga Laptop');
       expect(profile.agents[0]?.name).toBe('Claude Code');
       expect(profile.skills[0]?.name).toBe('agent-manager-skill');
