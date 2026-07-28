@@ -19,3 +19,6 @@ link-checker-report.txt
 # Starlight/ACOS temporary files
 .starlight/
 .gemini/
+
+# Local runtime routing and workstation data
+/ais-runtime.local.yaml
