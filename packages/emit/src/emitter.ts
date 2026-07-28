@@ -1,4 +1,4 @@
-import type { SystemProfile } from '@frankx-ai/ais-core';
+import type { PublicProfile } from '@frankx-ai/ais-core';
 
 export interface PublicDiscoveryProfile {
   schemaVersion: '2.0.0';
@@ -19,19 +19,26 @@ export interface PublicDiscoveryProfile {
  * aliases, models, pricing, context windows, failure modes, and repository
  * policies cannot cross this boundary when private profile fields change.
  */
-export function projectPublicDiscovery(profile: SystemProfile): PublicDiscoveryProfile {
+export function projectPublicDiscovery(profile: PublicProfile): PublicDiscoveryProfile {
   return {
     schemaVersion: '2.0.0',
     projection: 'public',
-    capabilities: profile.publicDiscovery.capabilities.map((capability) => ({ ...capability })),
-    skills: profile.publicDiscovery.skills.map((skill) => ({ ...skill })),
+    capabilities: profile.publicDiscovery.capabilities.map(({ name, description }) => ({
+      name,
+      description,
+    })),
+    skills: profile.publicDiscovery.skills.map(({ name, version, description }) => ({
+      name,
+      version,
+      description,
+    })),
   };
 }
 
 /**
  * Generates public llms.txt content from the public-safe projection.
  */
-export function generateLlmsText(profile: SystemProfile): string {
+export function generateLlmsText(profile: PublicProfile): string {
   const publicProfile = projectPublicDiscovery(profile);
   let output = `# Agentic Intelligence System — Public Discovery
 
@@ -62,14 +69,14 @@ AIS exposes provider-agnostic capabilities for discovery. Local workstation, rou
 /**
  * Generates the public machine-readable capability inventory.
  */
-export function generateAgentsJson(profile: SystemProfile): string {
+export function generateAgentsJson(profile: PublicProfile): string {
   return JSON.stringify(projectPublicDiscovery(profile), null, 2);
 }
 
 /**
  * Generates public JSON-LD without local runtime or provider claims.
  */
-export function generateJsonLd(profile: SystemProfile): string {
+export function generateJsonLd(profile: PublicProfile): string {
   const publicProfile = projectPublicDiscovery(profile);
   return JSON.stringify(
     {
