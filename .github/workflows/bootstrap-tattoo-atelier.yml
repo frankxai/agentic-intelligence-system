@@ -121,9 +121,16 @@ jobs:
           if proxy_path.exists():
               proxy_path.unlink()
 
+          icon_source = Path('app/icon.svg')
+          icon_target = Path('public/icon.svg')
+          icon_target.parent.mkdir(parents=True, exist_ok=True)
+          if icon_source.exists():
+              icon_source.replace(icon_target)
+
           validator_path = Path('scripts/validate-tattoo-vertical.mjs')
           validator = validator_path.read_text(encoding='utf-8')
           validator = validator.replace('  "proxy.ts",\n', '')
+          validator = validator.replace('  "app/icon.svg",\n', '  "public/icon.svg",\n')
           errors_anchor = 'const errors = [];\n'
           proxy_guard = '''const errors = [];
           if (fs.existsSync(path.join(root, "proxy.ts"))) {
