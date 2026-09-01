@@ -123,6 +123,17 @@ jobs:
 
           validator_path = Path('scripts/validate-tattoo-vertical.mjs')
           validator = validator_path.read_text(encoding='utf-8')
+          validator = validator.replace('  "proxy.ts",\n', '')
+          errors_anchor = 'const errors = [];\n'
+          proxy_guard = '''const errors = [];
+          if (fs.existsSync(path.join(root, "proxy.ts"))) {
+            errors.push("global proxy.ts must not intercept product or MCP routes");
+          }
+          '''
+          if errors_anchor not in validator:
+              raise SystemExit('Validator errors anchor not found.')
+          validator = validator.replace(errors_anchor, proxy_guard, 1)
+
           old_validator = '  if ((mcp.match(/securitySchemes: noAuth/g) ?? []).length < 7) errors.push("no-auth security schemes are not explicit on all tools and compatibility metadata");'
           new_validator = r'''  const securitySchemeCount = (mcp.match(/securitySchemes: noAuth/g) ?? []).length;
           if (securitySchemeCount !== 1) {
