@@ -61,6 +61,7 @@ jobs:
           package_path = Path('package.json')
           package = json.loads(package_path.read_text(encoding='utf-8'))
           package['scripts']['typecheck:packages'] = 'pnpm -r build'
+          package['dependencies']['@modelcontextprotocol/sdk'] = '1.25.2'
           package_path.write_text(json.dumps(package, indent=2) + '\n', encoding='utf-8')
 
           route_path = Path('app/mcp/route.ts')
