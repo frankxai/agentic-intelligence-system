@@ -75,6 +75,24 @@ jobs:
               route.replace(old, '    {\n      title:'),
               encoding='utf-8',
           )
+
+          validator_path = Path('scripts/validate-tattoo-vertical.mjs')
+          validator = validator_path.read_text(encoding='utf-8')
+          old_validator = '  if ((mcp.match(/securitySchemes: noAuth/g) ?? []).length < 7) errors.push("no-auth security schemes are not explicit on all tools and compatibility metadata");'
+          new_validator = r'''  const securitySchemeCount = (mcp.match(/securitySchemes: noAuth/g) ?? []).length;
+          if (securitySchemeCount !== 1) {
+            errors.push(`expected one shared no-auth security declaration in tool metadata, found ${securitySchemeCount}`);
+          }
+          const appMetaUseCount = (mcp.match(/\.\.\.appMeta|_meta:\s*appMeta/g) ?? []).length;
+          if (appMetaUseCount !== 6) {
+            errors.push(`expected shared App metadata on six tools, found ${appMetaUseCount}`);
+          }'''
+          if old_validator not in validator:
+              raise SystemExit('Legacy security metadata validator rule not found.')
+          validator_path.write_text(
+              validator.replace(old_validator, new_validator),
+              encoding='utf-8',
+          )
           PY
           rm -rf .bootstrap
           rm -f .github/workflows/bootstrap-tattoo-atelier.yml
