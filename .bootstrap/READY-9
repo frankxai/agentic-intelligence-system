@@ -1,0 +1,1 @@
+Retry after converting the metadata icon route into a plain public asset for deterministic Next.js production builds.

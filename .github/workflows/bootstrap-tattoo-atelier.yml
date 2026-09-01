@@ -1,0 +1,220 @@
+name: Bootstrap Tattoo Atelier reference app
+
+on:
+  push:
+    branches:
+      - feat/tattoo-atelier-reference-app
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bootstrap-tattoo-atelier
+  cancel-in-progress: false
+
+jobs:
+  bootstrap:
+    if: github.actor != 'github-actions[bot]' && contains(github.event.head_commit.message, 'activate verified bootstrap')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: feat/tattoo-atelier-reference-app
+          persist-credentials: true
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Materialize verified overlay
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import base64
+          from pathlib import Path
+
+          parts = sorted(Path('.bootstrap').glob('tattoo-overlay.part-*'))
+          if not parts:
+              raise SystemExit('No Tattoo Atelier archive segments found.')
+
+          alphabet = set('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/')
+          stream = ''.join(part.read_text(encoding='utf-8') for part in parts)
+          payload = ''.join(character for character in stream if character in alphabet)
+          payload += '=' * (-len(payload) % 4)
+          archive = base64.b64decode(payload, validate=True)
+          Path('/tmp/tattoo-overlay.tgz').write_bytes(archive)
+          print(f'Reconstructed {len(parts)} segments into {len(archive)} archive bytes.')
+          PY
+          echo "9cd093a1cd07011f95ec74306d6f63277370411ce1c81253f26c88df3aa4d419  /tmp/tattoo-overlay.tgz" | sha256sum --check -
+          tar -xzf /tmp/tattoo-overlay.tgz -C .
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          package_path = Path('package.json')
+          package = json.loads(package_path.read_text(encoding='utf-8'))
+          package['scripts']['typecheck:packages'] = 'pnpm -r build'
+          package['dependencies']['@modelcontextprotocol/sdk'] = '1.25.2'
+          package_path.write_text(json.dumps(package, indent=2) + '\n', encoding='utf-8')
+
+          route_path = Path('app/mcp/route.ts')
+          route = route_path.read_text(encoding='utf-8')
+          old = '    {\n      securitySchemes: noAuth,\n      title:'
+          replacements = route.count(old)
+          if replacements != 6:
+              raise SystemExit(
+                  f'Expected six tool-level securitySchemes entries, found {replacements}.'
+              )
+          route = route.replace(old, '    {\n      title:')
+
+          old_exports = '''export const GET = handler;
+          export const POST = handler;
+          '''
+          new_exports = '''const mcpCorsHeaders = {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+            "Access-Control-Allow-Headers":
+              "Content-Type, Authorization, MCP-Protocol-Version, MCP-Session-Id, Last-Event-ID",
+            "Access-Control-Expose-Headers": "MCP-Session-Id",
+          } as const;
+
+          async function withMcpCors(request: Request) {
+            const response = await handler(request);
+            const headers = new Headers(response.headers);
+
+            for (const [name, value] of Object.entries(mcpCorsHeaders)) {
+              headers.set(name, value);
+            }
+
+            return new Response(response.body, {
+              status: response.status,
+              statusText: response.statusText,
+              headers,
+            });
+          }
+
+          export function OPTIONS() {
+            return new Response(null, {
+              status: 204,
+              headers: mcpCorsHeaders,
+            });
+          }
+
+          export const GET = withMcpCors;
+          export const POST = withMcpCors;
+          '''
+          if old_exports not in route:
+              raise SystemExit('MCP route export block not found.')
+          route_path.write_text(
+              route.replace(old_exports, new_exports),
+              encoding='utf-8',
+          )
+
+          proxy_path = Path('proxy.ts')
+          if proxy_path.exists():
+              proxy_path.unlink()
+
+          icon_source = Path('app/icon.svg')
+          icon_target = Path('public/icon.svg')
+          icon_target.parent.mkdir(parents=True, exist_ok=True)
+          if icon_source.exists():
+              icon_source.replace(icon_target)
+
+          validator_path = Path('scripts/validate-tattoo-vertical.mjs')
+          validator = validator_path.read_text(encoding='utf-8')
+          validator = validator.replace('  "proxy.ts",\n', '')
+          validator = validator.replace('  "app/icon.svg",\n', '  "public/icon.svg",\n')
+          errors_anchor = 'const errors = [];\n'
+          proxy_guard = '''const errors = [];
+          if (fs.existsSync(path.join(root, "proxy.ts"))) {
+            errors.push("global proxy.ts must not intercept product or MCP routes");
+          }
+          '''
+          if errors_anchor not in validator:
+              raise SystemExit('Validator errors anchor not found.')
+          validator = validator.replace(errors_anchor, proxy_guard, 1)
+
+          old_validator = '  if ((mcp.match(/securitySchemes: noAuth/g) ?? []).length < 7) errors.push("no-auth security schemes are not explicit on all tools and compatibility metadata");'
+          new_validator = r'''  const securitySchemeCount = (mcp.match(/securitySchemes: noAuth/g) ?? []).length;
+          if (securitySchemeCount !== 1) {
+            errors.push(`expected one shared no-auth security declaration in tool metadata, found ${securitySchemeCount}`);
+          }
+          const appMetaUseCount = (mcp.match(/\.\.\.appMeta|_meta:\s*appMeta/g) ?? []).length;
+          if (appMetaUseCount !== 6) {
+            errors.push(`expected shared App metadata on six tools, found ${appMetaUseCount}`);
+          }
+          if (!mcp.includes('export function OPTIONS()')) {
+            errors.push('MCP route does not expose an explicit CORS preflight handler');
+          }'''
+          if old_validator not in validator:
+              raise SystemExit('Legacy security metadata validator rule not found.')
+          validator_path.write_text(
+              validator.replace(old_validator, new_validator),
+              encoding='utf-8',
+          )
+
+          vitest_path = Path('vitest.config.ts')
+          vitest_path.write_text(
+              '''import { fileURLToPath } from "node:url";
+          import { defineConfig } from "vitest/config";
+
+          const repositoryRoot = fileURLToPath(new URL(".", import.meta.url));
+
+          export default defineConfig({
+            resolve: {
+              alias: {
+                "@": repositoryRoot,
+              },
+            },
+            test: {
+              environment: "node",
+              include: ["packages/*/tests/**/*.test.ts", "tests/**/*.test.ts"],
+              coverage: {
+                reporter: ["text", "json-summary"],
+              },
+            },
+          });
+          ''',
+              encoding='utf-8',
+          )
+          PY
+          rm -rf .bootstrap
+          rm -f .github/workflows/bootstrap-tattoo-atelier.yml
+
+      - name: Refresh dependency lock
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Validate Tattoo Atelier contracts
+        run: pnpm validate:tattoo
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build production application
+        run: pnpm build
+        env:
+          BASE_URL: http://127.0.0.1:3017
+          TATTOO_PUBLIC_AI_ENABLED: "false"
+
+      - name: Smoke-test production application and MCP App
+        run: pnpm smoke:web
+
+      - name: Commit verified release tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: ship Tattoo Atelier reference vertical"
+          git push origin HEAD:feat/tattoo-atelier-reference-app

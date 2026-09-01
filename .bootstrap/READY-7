@@ -1,0 +1,1 @@
+Retry after isolating MCP CORS to the route and removing the global proxy interception.
