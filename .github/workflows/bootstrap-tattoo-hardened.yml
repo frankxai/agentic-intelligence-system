@@ -1,0 +1,130 @@
+name: Bootstrap hardened Tattoo Atelier release
+
+on:
+  push:
+    branches:
+      - feat/tattoo-atelier-reference-app
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bootstrap-tattoo-hardened
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.actor != 'github-actions[bot]' && contains(github.event.head_commit.message, 'activate hardened bootstrap')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: feat/tattoo-atelier-reference-app
+          persist-credentials: true
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Materialize verified product and hardened runtime patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import base64
+          import hashlib
+          import tarfile
+          from pathlib import Path
+
+          def reconstruct(pattern: str, destination: str, expected_sha256: str) -> None:
+              parts = sorted(Path('.bootstrap').glob(pattern))
+              if not parts:
+                  raise SystemExit(f'No archive segments found for {pattern}.')
+
+              alphabet = set('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/')
+              stream = ''.join(part.read_text(encoding='utf-8') for part in parts)
+              payload = ''.join(character for character in stream if character in alphabet)
+              payload += '=' * (-len(payload) % 4)
+              archive = base64.b64decode(payload, validate=True)
+              digest = hashlib.sha256(archive).hexdigest()
+
+              if digest != expected_sha256:
+                  raise SystemExit(
+                      f'Archive SHA mismatch for {pattern}: expected {expected_sha256}, got {digest}.'
+                  )
+
+              archive_path = Path(destination)
+              archive_path.write_bytes(archive)
+              print(
+                  f'Verified {len(parts)} segments into {len(archive)} bytes '
+                  f'({digest}).'
+              )
+
+          reconstruct(
+              'tattoo-overlay.part-*',
+              '/tmp/tattoo-overlay.tgz',
+              '9cd093a1cd07011f95ec74306d6f63277370411ce1c81253f26c88df3aa4d419',
+          )
+          reconstruct(
+              'tattoo-final-patch.part-*',
+              '/tmp/tattoo-final-patch.tgz',
+              'b38566a91b1153eeb6148995191ebc4f02f4293293826101507051343d474e14',
+          )
+
+          for archive_path in (
+              Path('/tmp/tattoo-overlay.tgz'),
+              Path('/tmp/tattoo-final-patch.tgz'),
+          ):
+              with tarfile.open(archive_path, mode='r:gz') as archive:
+                  archive.extractall('.')
+          PY
+
+          rm -f \
+            proxy.ts \
+            app/icon.svg \
+            app/manifest.ts \
+            app/robots.ts \
+            app/sitemap.ts \
+            app/opengraph-image.tsx
+
+          rm -rf .bootstrap
+          rm -f \
+            .github/workflows/bootstrap-tattoo-atelier.yml \
+            .github/workflows/bootstrap-tattoo-hardened.yml
+
+      - name: Resolve dependency graph
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Validate Tattoo Atelier release contracts
+        run: pnpm validate:tattoo
+
+      - name: Typecheck packages and web application
+        run: pnpm typecheck
+
+      - name: Run deterministic and product tests
+        run: pnpm test
+
+      - name: Build production application
+        run: pnpm build
+        env:
+          BASE_URL: http://127.0.0.1:3017
+          TATTOO_PUBLIC_AI_ENABLED: "false"
+
+      - name: Smoke-test built website, APIs, metadata, and MCP App
+        run: pnpm smoke:web
+
+      - name: Commit only the verified release tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: ship Tattoo Atelier reference vertical"
+          git push origin HEAD:feat/tattoo-atelier-reference-app
