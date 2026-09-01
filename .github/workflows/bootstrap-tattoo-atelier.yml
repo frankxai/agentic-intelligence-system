@@ -72,10 +72,54 @@ jobs:
               raise SystemExit(
                   f'Expected six tool-level securitySchemes entries, found {replacements}.'
               )
+          route = route.replace(old, '    {\n      title:')
+
+          old_exports = '''export const GET = handler;
+          export const POST = handler;
+          '''
+          new_exports = '''const mcpCorsHeaders = {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+            "Access-Control-Allow-Headers":
+              "Content-Type, Authorization, MCP-Protocol-Version, MCP-Session-Id, Last-Event-ID",
+            "Access-Control-Expose-Headers": "MCP-Session-Id",
+          } as const;
+
+          async function withMcpCors(request: Request) {
+            const response = await handler(request);
+            const headers = new Headers(response.headers);
+
+            for (const [name, value] of Object.entries(mcpCorsHeaders)) {
+              headers.set(name, value);
+            }
+
+            return new Response(response.body, {
+              status: response.status,
+              statusText: response.statusText,
+              headers,
+            });
+          }
+
+          export function OPTIONS() {
+            return new Response(null, {
+              status: 204,
+              headers: mcpCorsHeaders,
+            });
+          }
+
+          export const GET = withMcpCors;
+          export const POST = withMcpCors;
+          '''
+          if old_exports not in route:
+              raise SystemExit('MCP route export block not found.')
           route_path.write_text(
-              route.replace(old, '    {\n      title:'),
+              route.replace(old_exports, new_exports),
               encoding='utf-8',
           )
+
+          proxy_path = Path('proxy.ts')
+          if proxy_path.exists():
+              proxy_path.unlink()
 
           validator_path = Path('scripts/validate-tattoo-vertical.mjs')
           validator = validator_path.read_text(encoding='utf-8')
@@ -87,6 +131,9 @@ jobs:
           const appMetaUseCount = (mcp.match(/\.\.\.appMeta|_meta:\s*appMeta/g) ?? []).length;
           if (appMetaUseCount !== 6) {
             errors.push(`expected shared App metadata on six tools, found ${appMetaUseCount}`);
+          }
+          if (!mcp.includes('export function OPTIONS()')) {
+            errors.push('MCP route does not expose an explicit CORS preflight handler');
           }'''
           if old_validator not in validator:
               raise SystemExit('Legacy security metadata validator rule not found.')
