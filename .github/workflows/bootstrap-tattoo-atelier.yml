@@ -93,6 +93,31 @@ jobs:
               validator.replace(old_validator, new_validator),
               encoding='utf-8',
           )
+
+          vitest_path = Path('vitest.config.ts')
+          vitest_path.write_text(
+              '''import { fileURLToPath } from "node:url";
+          import { defineConfig } from "vitest/config";
+
+          const repositoryRoot = fileURLToPath(new URL(".", import.meta.url));
+
+          export default defineConfig({
+            resolve: {
+              alias: {
+                "@": repositoryRoot,
+              },
+            },
+            test: {
+              environment: "node",
+              include: ["packages/*/tests/**/*.test.ts", "tests/**/*.test.ts"],
+              coverage: {
+                reporter: ["text", "json-summary"],
+              },
+            },
+          });
+          ''',
+              encoding='utf-8',
+          )
           PY
           rm -rf .bootstrap
           rm -f .github/workflows/bootstrap-tattoo-atelier.yml
