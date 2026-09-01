@@ -38,6 +38,7 @@ jobs:
           set -euo pipefail
           python - <<'PY'
           import base64
+          import json
           from pathlib import Path
 
           parts = sorted(Path('.bootstrap').glob('tattoo-overlay.part-*'))
@@ -54,6 +55,15 @@ jobs:
           PY
           echo "9cd093a1cd07011f95ec74306d6f63277370411ce1c81253f26c88df3aa4d419  /tmp/tattoo-overlay.tgz" | sha256sum --check -
           tar -xzf /tmp/tattoo-overlay.tgz -C .
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          package_path = Path('package.json')
+          package = json.loads(package_path.read_text(encoding='utf-8'))
+          package['scripts']['typecheck:packages'] = 'pnpm -r build'
+          package_path.write_text(json.dumps(package, indent=2) + '\n', encoding='utf-8')
+          PY
           rm -rf .bootstrap
           rm -f .github/workflows/bootstrap-tattoo-atelier.yml
 
