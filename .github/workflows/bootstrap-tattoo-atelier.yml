@@ -36,8 +36,22 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat .bootstrap/tattoo-overlay.part-* | tr -cd 'A-Za-z0-9+/=' > /tmp/tattoo-overlay.tgz.b64
-          base64 --decode /tmp/tattoo-overlay.tgz.b64 > /tmp/tattoo-overlay.tgz
+          python - <<'PY'
+          import base64
+          from pathlib import Path
+
+          parts = sorted(Path('.bootstrap').glob('tattoo-overlay.part-*'))
+          if not parts:
+              raise SystemExit('No Tattoo Atelier archive segments found.')
+
+          alphabet = set('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/')
+          stream = ''.join(part.read_text(encoding='utf-8') for part in parts)
+          payload = ''.join(character for character in stream if character in alphabet)
+          payload += '=' * (-len(payload) % 4)
+          archive = base64.b64decode(payload, validate=True)
+          Path('/tmp/tattoo-overlay.tgz').write_bytes(archive)
+          print(f'Reconstructed {len(parts)} segments into {len(archive)} archive bytes.')
+          PY
           echo "9cd093a1cd07011f95ec74306d6f63277370411ce1c81253f26c88df3aa4d419  /tmp/tattoo-overlay.tgz" | sha256sum --check -
           tar -xzf /tmp/tattoo-overlay.tgz -C .
           rm -rf .bootstrap
