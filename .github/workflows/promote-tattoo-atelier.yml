@@ -1,0 +1,209 @@
+name: Promote Tattoo Atelier release
+
+on:
+  push:
+    branches:
+      - feat/tattoo-atelier-reference-app
+    paths:
+      - .github/workflows/promote-tattoo-atelier.yml
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  checks: read
+  contents: write
+  deployments: read
+  issues: write
+  pull-requests: write
+  statuses: read
+
+concurrency:
+  group: tattoo-atelier-release
+  cancel-in-progress: false
+
+jobs:
+  verify-preview-merge-production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_BRANCH: feat/tattoo-atelier-reference-app
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: feat/tattoo-atelier-reference-app
+          fetch-depth: 0
+          persist-credentials: true
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Reproduce the frozen release gate
+        run: |
+          set -euo pipefail
+          pnpm install --frozen-lockfile
+          pnpm validate:tattoo
+          pnpm typecheck
+          pnpm test
+          BASE_URL=http://127.0.0.1:3017 TATTOO_PUBLIC_AI_ENABLED=false pnpm build
+          pnpm smoke:web
+
+      - name: Produce the final clean release SHA
+        id: final
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/promote-tattoo-atelier.yml
+          rm -rf .bootstrap
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add --all
+          git diff --cached --check
+          git commit -m 'chore: finalize verified Tattoo Atelier release'
+          git push origin HEAD:${RELEASE_BRANCH}
+          final_sha="$(git rev-parse HEAD)"
+          echo "sha=${final_sha}" >> "$GITHUB_OUTPUT"
+          echo "Final release SHA: ${final_sha}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Wait for CI on the exact clean SHA
+        env:
+          FINAL_SHA: ${{ steps.final.outputs.sha }}
+        run: |
+          set -euo pipefail
+          deadline=$((SECONDS + 1800))
+          while (( SECONDS < deadline )); do
+            runs="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml --branch "$RELEASE_BRANCH" --limit 30 --json databaseId,headSha,status,conclusion,url)"
+            exact="$(jq --arg sha "$FINAL_SHA" '[.[] | select(.headSha == $sha)]' <<<"$runs")"
+            count="$(jq 'length' <<<"$exact")"
+            failed="$(jq '[.[] | select(.status == "completed" and (.conclusion != "success" and .conclusion != "skipped" and .conclusion != "neutral"))] | length' <<<"$exact")"
+            pending="$(jq '[.[] | select(.status != "completed")] | length' <<<"$exact")"
+            passed="$(jq '[.[] | select(.status == "completed" and .conclusion == "success")] | length' <<<"$exact")"
+            if (( failed > 0 )); then
+              jq . <<<"$exact"
+              echo 'CI failed for the final release SHA.' >&2
+              exit 1
+            fi
+            if (( count > 0 && pending == 0 && passed > 0 )); then
+              jq . <<<"$exact"
+              echo 'CI is green for the final release SHA.'
+              exit 0
+            fi
+            sleep 15
+          done
+          echo 'Timed out waiting for CI.' >&2
+          exit 1
+
+      - name: Resolve and smoke-test the Vercel preview
+        id: preview
+        env:
+          FINAL_SHA: ${{ steps.final.outputs.sha }}
+        run: |
+          set -euo pipefail
+          deadline=$((SECONDS + 1800))
+          preview_url=''
+          while (( SECONDS < deadline )); do
+            deployments="$(gh api "repos/${GITHUB_REPOSITORY}/deployments?sha=${FINAL_SHA}&per_page=100")"
+            mapfile -t ids < <(jq -r '.[] | select(((.environment // "") | ascii_downcase | contains("preview")) or ((.environment // "") | ascii_downcase | contains("development"))) | .id' <<<"$deployments")
+            for id in "${ids[@]:-}"; do
+              [[ -n "$id" ]] || continue
+              statuses="$(gh api "repos/${GITHUB_REPOSITORY}/deployments/${id}/statuses?per_page=100")"
+              bad="$(jq -r '[.[] | select(.state == "failure" or .state == "error")][0].state // empty' <<<"$statuses")"
+              if [[ -n "$bad" ]]; then
+                echo "Vercel preview deployment ${id} reported ${bad}." >&2
+                exit 1
+              fi
+              preview_url="$(jq -r '[.[] | select(.state == "success") | (.environment_url // .target_url // empty) | select(startswith("http"))][0] // empty' <<<"$statuses")"
+              [[ -n "$preview_url" ]] && break 2
+            done
+            sleep 15
+          done
+          [[ -n "$preview_url" ]] || { echo 'No successful Vercel preview URL was published for the final SHA.' >&2; exit 1; }
+          preview_url="${preview_url%/}"
+          echo "url=${preview_url}" >> "$GITHUB_OUTPUT"
+          echo "Vercel preview: ${preview_url}" >> "$GITHUB_STEP_SUMMARY"
+
+          for path in / /studio /docs /privacy /support /api/health /robots.txt /sitemap.xml; do
+            curl --fail --silent --show-error --location --retry 6 --retry-all-errors "${preview_url}${path}" --output "/tmp/preview$(echo "$path" | tr '/.' '__')"
+          done
+          test -s /tmp/preview_api_health
+          grep -Eqi 'ok|healthy|tattoo|atelier' /tmp/preview_api_health
+
+          curl --fail --silent --show-error --location --retry 4 --retry-all-errors \
+            --request POST "${preview_url}/mcp" \
+            --header 'content-type: application/json' \
+            --header 'accept: application/json, text/event-stream' \
+            --data '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"tattoo-release-gate","version":"1.0.0"}}}' \
+            --output /tmp/preview-mcp
+          grep -Eqi 'result|event: message|protocolVersion' /tmp/preview-mcp
+
+      - name: Mark ready and merge the exact verified head
+        id: merge
+        env:
+          FINAL_SHA: ${{ steps.final.outputs.sha }}
+        run: |
+          set -euo pipefail
+          owner="${GITHUB_REPOSITORY%%/*}"
+          pr_number="$(gh api "repos/${GITHUB_REPOSITORY}/pulls?state=open&head=${owner}:${RELEASE_BRANCH}&per_page=20" --jq '.[0].number')"
+          [[ -n "$pr_number" ]] || { echo 'Open Tattoo Atelier PR not found.' >&2; exit 1; }
+          gh pr ready "$pr_number" --repo "$GITHUB_REPOSITORY"
+
+          timeout 1800 gh pr checks "$pr_number" --repo "$GITHUB_REPOSITORY" --watch --fail-fast
+
+          merge_json="$(gh api --method PUT "repos/${GITHUB_REPOSITORY}/pulls/${pr_number}/merge" \
+            -f merge_method=squash \
+            -f sha="$FINAL_SHA" \
+            -f commit_title="feat: ship Tattoo Atelier reference app (#${pr_number})" \
+            -f commit_message='Tattoo intelligence engine, Vercel studio, MCP/App tools, portable skills, privacy boundaries, evals, documentation, and production gates.')"
+          jq -e '.merged == true' <<<"$merge_json" >/dev/null
+          merge_sha="$(jq -r '.sha' <<<"$merge_json")"
+          echo "sha=${merge_sha}" >> "$GITHUB_OUTPUT"
+          echo "pr=${pr_number}" >> "$GITHUB_OUTPUT"
+          echo "Merged PR #${pr_number} as ${merge_sha}" >> "$GITHUB_STEP_SUMMARY"
+          gh api --method DELETE "repos/${GITHUB_REPOSITORY}/git/refs/heads/${RELEASE_BRANCH}" >/dev/null 2>&1 || true
+
+      - name: Verify the matching Vercel production deployment
+        env:
+          MERGE_SHA: ${{ steps.merge.outputs.sha }}
+        run: |
+          set -euo pipefail
+          deadline=$((SECONDS + 1800))
+          production_url=''
+          while (( SECONDS < deadline )); do
+            deployments="$(gh api "repos/${GITHUB_REPOSITORY}/deployments?sha=${MERGE_SHA}&per_page=100")"
+            mapfile -t ids < <(jq -r '.[] | select((.environment // "") | ascii_downcase | contains("production")) | .id' <<<"$deployments")
+            for id in "${ids[@]:-}"; do
+              [[ -n "$id" ]] || continue
+              statuses="$(gh api "repos/${GITHUB_REPOSITORY}/deployments/${id}/statuses?per_page=100")"
+              bad="$(jq -r '[.[] | select(.state == "failure" or .state == "error")][0].state // empty' <<<"$statuses")"
+              if [[ -n "$bad" ]]; then
+                echo "Vercel production deployment ${id} reported ${bad}." >&2
+                exit 1
+              fi
+              production_url="$(jq -r '[.[] | select(.state == "success") | (.environment_url // .target_url // empty) | select(startswith("http"))][0] // empty' <<<"$statuses")"
+              [[ -n "$production_url" ]] && break 2
+            done
+            sleep 15
+          done
+          [[ -n "$production_url" ]] || { echo 'No successful Vercel production URL was published for the merge SHA.' >&2; exit 1; }
+          production_url="${production_url%/}"
+          echo "Vercel production: ${production_url}" >> "$GITHUB_STEP_SUMMARY"
+          for path in / /studio /docs /privacy /support /api/health; do
+            curl --fail --silent --show-error --location --retry 8 --retry-all-errors "${production_url}${path}" --output "/tmp/production$(echo "$path" | tr '/.' '__')"
+          done
+          test -s /tmp/production_api_health
+          grep -Eqi 'ok|healthy|tattoo|atelier' /tmp/production_api_health
+
+      - name: Open a release incident when post-merge verification fails
+        if: failure() && steps.merge.outputs.sha != ''
+        env:
+          MERGE_SHA: ${{ steps.merge.outputs.sha }}
+          PR_NUMBER: ${{ steps.merge.outputs.pr }}
+        run: |
+          gh issue create --repo "$GITHUB_REPOSITORY" \
+            --title '[release] Tattoo Atelier production verification failed' \
+            --body "The Tattoo Atelier PR #${PR_NUMBER} merged as ${MERGE_SHA}, but the post-merge Vercel verification failed. Inspect this workflow run before further promotion: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
