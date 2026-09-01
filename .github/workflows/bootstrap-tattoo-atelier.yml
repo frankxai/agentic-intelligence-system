@@ -38,7 +38,6 @@ jobs:
           set -euo pipefail
           python - <<'PY'
           import base64
-          import json
           from pathlib import Path
 
           parts = sorted(Path('.bootstrap').glob('tattoo-overlay.part-*'))
@@ -63,6 +62,19 @@ jobs:
           package = json.loads(package_path.read_text(encoding='utf-8'))
           package['scripts']['typecheck:packages'] = 'pnpm -r build'
           package_path.write_text(json.dumps(package, indent=2) + '\n', encoding='utf-8')
+
+          route_path = Path('app/mcp/route.ts')
+          route = route_path.read_text(encoding='utf-8')
+          old = '    {\n      securitySchemes: noAuth,\n      title:'
+          replacements = route.count(old)
+          if replacements != 6:
+              raise SystemExit(
+                  f'Expected six tool-level securitySchemes entries, found {replacements}.'
+              )
+          route_path.write_text(
+              route.replace(old, '    {\n      title:'),
+              encoding='utf-8',
+          )
           PY
           rm -rf .bootstrap
           rm -f .github/workflows/bootstrap-tattoo-atelier.yml
