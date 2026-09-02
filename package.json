@@ -10,6 +10,8 @@
   "scripts": {
     "typecheck": "pnpm -r typecheck",
     "test": "vitest run",
+    "test:ais": "node --test \"tests/*.test.mjs\"",
+    "ais": "node bin/ais.mjs",
     "build": "pnpm -r build && node scripts/generate-assets.mjs"
   },
   "devDependencies": {
