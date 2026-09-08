@@ -9,5 +9,8 @@
       "destination": "/llms.txt",
       "permanent": false
     }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": false
+  }
 }
