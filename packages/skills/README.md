@@ -1,4 +1,4 @@
-# 🧠 @frankx-ai/ais-skills
+# @frankx-ai/ais-skills
 
 Global workstation agent skills manager.
 
@@ -9,6 +9,8 @@ Global workstation agent skills manager.
 ## Installation
 
 ```bash
-# Deploys skills globally and to claude-code-config paths
-pnpm install-skills
+# From the repository root: build, then copy the skills to ~/.agents/skills
+# (and to ~/claude-code-config/skills when that directory exists)
+pnpm build
+pnpm --filter @frankx-ai/ais-skills install-skills
 ```
