@@ -1,7 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import { fileURLToPath } from 'node:url';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const USER_HOME = os.homedir();
 const GLOBAL_SKILLS_DIR = path.join(USER_HOME, '.agents', 'skills');
 const CLAUDE_CONFIG_SKILLS_DIR = path.join(USER_HOME, 'claude-code-config', 'skills');

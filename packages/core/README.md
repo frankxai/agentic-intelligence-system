@@ -1,16 +1,20 @@
-# ⚙️ @frankx-ai/ais-core
+# @frankx-ai/ais-core
 
 The core validation schemas and configuration loaders for the Agentic Intelligence System.
 
 ## Features
-* **Canonical Schema:** Standard Zod schemas validating workstation settings, agent capabilities, skills registries, and repository harness structures.
-* **Unified Profile Loader:** Helper module that loads the system profile from the main YAML file (`ais-profile.yaml`) and verifies types.
+* **Two trust domains:** `PublicProfileSchema` validates the allowlisted `publicDiscovery` section in `ais-profile.yaml`. `RuntimeProfileSchema` validates the local workstation, agent, skill, and repository-harness data.
+* **Loaders:** `loadPublicProfile` and `loadRuntimeProfile` read one domain each. `loadSystemProfile` reads a combined file that keeps both domains together; use it only for a file that is not published.
 
 ## API Usage
 
 ```typescript
-import { loadSystemProfile } from '@frankx-ai/ais-core';
+import { loadPublicProfile, loadRuntimeProfile } from '@frankx-ai/ais-core';
 
-const profile = loadSystemProfile('/path/to/ais-profile.yaml');
-console.log(profile.workstation.machineName); // "Yoga Laptop"
+// Public build: reads only the publicDiscovery allowlist.
+const publicProfile = loadPublicProfile('/path/to/ais-profile.yaml');
+
+// Local runtime: reads the gitignored overlay.
+const runtime = loadRuntimeProfile('/path/to/ais-runtime.local.yaml');
+console.log(runtime.workstation.machineName);
 ```
