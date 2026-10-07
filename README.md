@@ -92,6 +92,45 @@ Four decoupled, compile-safe packages under one `pnpm` workspace:
 
 Public discovery describes stable, provider-agnostic capabilities. The MCP server selects among the agents configured in the local runtime profile; provider names, models, costs, machine capacity, aliases, and repository policies are never required in the public repository.
 
+### What AIS is not
+
+AIS is the **discovery, AEO/GEO, capability-routing and workspace-legibility** layer. It is not a memory
+system and not an orchestration UI. It answers three questions — *what can this repository do*, *which
+capability does this request route to*, *what is the citation* — and hands execution back to whatever
+runtime the caller already has. Repository and team identity are owned by the **AI Capability Registry**
+(`starlight.repo_profile.v2` / `starlight.team_profile.v2`); AIS binds to those contracts by reference.
+
+### AIS.v1 — the routing contract
+
+`lib/ais/` is dependency-free ESM. It runs on plain Node with **no install**, because a discovery layer
+that needs a build step is not the first thing an agent can reach for.
+
+Nine node types: **RepositoryProfile, TeamProfile, Capability, Route, Policy, Evidence, Citation,
+AgentRequest, Resolution.** Every node carries `owner`, `provenance`, `version`, `visibility` and an
+`evaluation` rule — the sentence that would falsify it.
+
+```bash
+node bin/ais.mjs scan .                                   # sanitized RepositoryProfile + capabilities
+node bin/ais.mjs route . --intent "run the tests"          # → Resolution + Citation + receipt
+node bin/ais.mjs drift . --registry ../ai-capability-registry
+node --test "tests/*.test.mjs"                             # 16 tests, no install required
+```
+
+Four rules do the work:
+
+| Rule | Effect |
+| --- | --- |
+| Denylist before read | `.env*`, keys, wallets, `credentials.*`, every dot-directory — counted, never opened. One redaction pass scrubs tokens, JWTs, emails and operator home paths from whatever survives. |
+| `E_UNEVIDENCED_CAPABILITY` | An `active` capability must point at Evidence with a `repo:` or `https:` locator. Otherwise it is `watch`. |
+| `E_RESOLVED_WITHOUT_CITATION` | A resolution may only be `resolved` if it carries a citation. No route, or no evidence, means *refused* or *ambiguous* — never a guess. |
+| Drift `unavailable` ≠ pass | With no registry path supplied, the drift check reports `unavailable` and says so. Absence is never reported as agreement. |
+
+**Activation event:** a receipt under `.ais/receipts/` whose resolution is `resolved` with at least one
+citation whose locator still resolves. `isActivation()` is the single place that rule lives.
+
+Absolute machine paths are refused as source references by the schema itself, so a profile cannot carry
+the operator's filesystem into a public artifact even by accident.
+
 ---
 
 <a id="getting-started"></a>
@@ -114,8 +153,9 @@ pnpm install
 
 ```bash
 pnpm build       # build all TS packages
-pnpm test        # run unit tests across packages
+pnpm test        # run unit tests across packages (vitest, needs install)
 pnpm typecheck   # tsc --noEmit across the workspace
+pnpm test:ais    # AIS.v1 suite — plain node, no install needed
 ```
 
 ### Run the MCP server locally
