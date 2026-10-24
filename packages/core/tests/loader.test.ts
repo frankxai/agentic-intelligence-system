@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import path from 'node:path';
 import fs from 'node:fs';
-import { loadPublicProfile, loadRuntimeProfile } from '../src/loader.js';
+import { loadPublicProfile, loadRuntimeProfile, loadSystemProfile } from '../src/loader.js';
 
 describe('AIS profile loaders', () => {
   const mockYamlPath = path.join(__dirname, 'mock-profile.yaml');
@@ -72,5 +72,53 @@ workstation:
         expect(() => loadPublicProfile(mockYamlPath)).toThrow(/AIS Public Profile validation failed/);
       }
     );
+  });
+
+  it('loads a combined system profile successfully', () => {
+    withProfile(
+      `
+publicDiscovery:
+  capabilities:
+    - name: "Public capability"
+      description: "Public description"
+  skills: []
+workstation:
+  machineName: "Local machine"
+  os: "Local OS"
+  totalRamGb: 16
+  totalDiskGb: 512
+  capacityGuidelines:
+    maxParallelSessions: 5
+    memoryThresholds:
+      green: 4
+      yellow: 2
+      red: 1
+agents: []
+skills: []
+harnesses: {}
+`,
+      () => {
+        const profile = loadSystemProfile(mockYamlPath);
+        expect(profile.publicDiscovery.capabilities[0]?.name).toBe('Public capability');
+        expect(profile.workstation.machineName).toBe('Local machine');
+      }
+    );
+  });
+
+  it('throws an error if file does not exist', () => {
+    const missingPath = path.join(__dirname, 'does-not-exist.yaml');
+    expect(() => loadPublicProfile(missingPath)).toThrow(/file not found at path:/);
+  });
+
+  it('throws an error if yaml is empty', () => {
+    withProfile('', () => {
+      expect(() => loadPublicProfile(mockYamlPath)).toThrow(/is invalid or empty YAML at path:/);
+    });
+  });
+
+  it('throws an error if yaml is invalid type (e.g. string)', () => {
+    withProfile('"just a string"', () => {
+      expect(() => loadPublicProfile(mockYamlPath)).toThrow(/is invalid or empty YAML at path:/);
+    });
   });
 });
