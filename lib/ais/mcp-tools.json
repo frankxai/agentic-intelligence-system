@@ -1,0 +1,113 @@
+{
+  "schema": "ais.mcp-tools.v1",
+  "server": {
+    "name": "ais",
+    "title": "Agentic Intelligence System",
+    "description": "Discovery, capability routing and workspace legibility. Answers what a repository can do, which capability a request routes to, and what the citation is. It does not execute the work and does not store memory.",
+    "boundary": [
+      "Read-only over a workspace. No writes except receipts under .ais/receipts/.",
+      "Never returns the content of a denylisted file, and never returns an absolute machine path.",
+      "Refuses rather than guesses: an unrouted request comes back refused with a rationale."
+    ]
+  },
+  "tools": [
+    {
+      "name": "ais_scan_repository",
+      "description": "Scan a repository path and return a sanitized RepositoryProfile with the capabilities and evidence it can justify. Denylisted files are counted, never opened.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "repoPath": { "type": "string", "description": "Absolute or workspace-relative path to the repository root." },
+          "owner": { "type": "string", "description": "Who owns the resulting profile nodes." }
+        },
+        "required": ["repoPath"],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "profile": { "type": "object", "description": "AIS.v1 RepositoryProfile node." },
+          "capabilities": { "type": "array", "items": { "type": "object" } },
+          "evidence": { "type": "array", "items": { "type": "object" } },
+          "deniedFileCount": { "type": "integer" }
+        },
+        "required": ["profile", "capabilities", "evidence"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "ais_route_request",
+      "description": "Resolve an AgentRequest to a Capability through the Route and Policy graph. Returns a Resolution; status is resolved only when a citation could be attached.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "intent": { "type": "string", "description": "What the caller is trying to do, in their own words." },
+          "verbs": { "type": "array", "items": { "type": "string" } },
+          "repositoryId": { "type": ["string", "null"] },
+          "requester": { "type": "string", "description": "Which agent or person is asking." }
+        },
+        "required": ["intent", "requester"],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "status": { "enum": ["resolved", "refused", "ambiguous"] },
+          "capabilityId": { "type": ["string", "null"] },
+          "citations": { "type": "array", "items": { "type": "object" } },
+          "rationale": { "type": "string" }
+        },
+        "required": ["status", "rationale"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "ais_write_receipt",
+      "description": "Persist a request and its resolution as an evaluable receipt under .ais/receipts/. A receipt counts as an activation only when the resolution is resolved and carries at least one citation.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "request": { "type": "object" },
+          "resolution": { "type": "object" },
+          "profileId": { "type": "string" }
+        },
+        "required": ["request", "resolution", "profileId"],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "file": { "type": "string" },
+          "isActivation": { "type": "boolean" }
+        },
+        "required": ["file", "isActivation"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "ais_check_registry_drift",
+      "description": "Compare scanned capabilities against the private AI Capability Registry export. Reports drift; never republishes registry content. Returns status \"unavailable\" when the registry path is not supplied — absence is never a pass.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "registryPath": {
+            "type": "string",
+            "description": "Path to a local ai-capability-registry checkout, or directly to exports/capabilities.json."
+          },
+          "repoPath": { "type": "string" }
+        },
+        "required": ["repoPath"],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "status": { "enum": ["in-sync", "drifted", "unavailable"] },
+          "findings": { "type": "array", "items": { "type": "object" } }
+        },
+        "required": ["status", "findings"],
+        "additionalProperties": false
+      }
+    }
+  ]
+}
