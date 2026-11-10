@@ -22,3 +22,6 @@ link-checker-report.txt
 
 # Local runtime routing and workstation data
 /ais-runtime.local.yaml
+
+# AIS routing receipts (evaluable, local, never published)
+.ais/
